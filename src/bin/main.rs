@@ -8,9 +8,10 @@
 #![deny(clippy::large_stack_frames)]
 
 use defmt::info;
+use embassy_executor::Spawner;
+use embassy_net::StackResources;
 use esp_hal::clock::CpuClock;
-use esp_hal::main;
-use esp_hal::time::{Duration, Instant};
+use esp_hal::rng::TrngSource;
 use esp_hal::timer::timg::TimerGroup;
 use panic_rtt_target as _;
 
@@ -20,13 +21,23 @@ extern crate alloc;
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
+macro_rules! mk_static {
+    ($t:ty) => {{
+        static STATIC_CELL: static_cell::StaticCell<$t> = static_cell::StaticCell::new();
+        STATIC_CELL.uninit()
+    }};
+    ($t:ty,$val:expr) => {{ mk_static!($t).write($val) }};
+}
+
 #[allow(
     clippy::large_stack_frames,
     reason = "it's not unusual to allocate larger buffers etc. in main"
 )]
-#[main]
-fn main() -> ! {
+#[esp_rtos::main]
+async fn main(spawner: Spawner) -> ! {
     // generator version: 1.2.0
+
+    info!("Starting...");
 
     rtt_target::rtt_init_defmt!();
 
@@ -39,16 +50,19 @@ fn main() -> ! {
     let sw_interrupt =
         esp_hal::interrupt::software::SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     esp_rtos::start(timg0.timer0, sw_interrupt.software_interrupt0);
-    let radio_init = esp_radio::init().expect("Failed to initialize Wi-Fi/BLE controller");
-    let (mut _wifi_controller, _interfaces) =
-        esp_radio::wifi::new(&radio_init, peripherals.WIFI, Default::default())
-            .expect("Failed to initialize Wi-Fi controller");
 
-    loop {
-        info!("Hello world!");
-        let delay_start = Instant::now();
-        while delay_start.elapsed() < Duration::from_millis(500) {}
-    }
+    let _trng_src = TrngSource::new(peripherals.RNG, peripherals.ADC1);
+
+    let stack_resources = mk_static!(StackResources<3>, StackResources::new());
+
+    info!("Embassy initialized!");
+
+    // TODO: Spawn some tasks
+    let _ = spawner;
+
+    dsmr_to_zaptec::wifi::init_wifi(peripherals.WIFI, stack_resources, spawner).await;
+
+    loop {}
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0/examples
 }

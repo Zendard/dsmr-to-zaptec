@@ -21,6 +21,7 @@ esp-hal = { version = "~1.0", features = ["defmt", "esp32c3", "unstable"] }
 
 esp-rtos = { version = "0.2.0", features = [
   "defmt",
+  "embassy",
   "esp-alloc",
   "esp-radio",
   "esp32c3",
@@ -29,9 +30,21 @@ esp-rtos = { version = "0.2.0", features = [
 defmt                  = "1.0.1"
 esp-bootloader-esp-idf = { version = "0.4.0", features = ["defmt", "esp32c3"] }
 
-critical-section = "1.2.0"
+embassy-net = { version = "0.7.1", features = [
+  "defmt",
+  "dhcpv4",
+  "medium-ethernet",
+  "tcp",
+  "udp",
+] }
 embedded-io = { version = "0.7.1", features = ["defmt"] }
+embedded-io-async = { version = "0.7.0", features = ["defmt"] }
 esp-alloc = { version = "0.9.0", features = ["defmt"] }
+panic-rtt-target = { version = "0.2.0", features = ["defmt"] }
+rtt-target = { version = "0.6.2", features = ["defmt"] }
+# for more networking protocol support see https://crates.io/crates/edge-net
+embassy-executor = { version = "0.9.1", features = ["defmt"] }
+embassy-time = { version = "0.5.0", features = ["defmt"] }
 esp-radio = { version = "0.17.0", features = [
   "defmt",
   "esp-alloc",
@@ -40,8 +53,6 @@ esp-radio = { version = "0.17.0", features = [
   "unstable",
   "wifi",
 ] }
-panic-rtt-target = { version = "0.2.0", features = ["defmt"] }
-rtt-target = { version = "0.6.2", features = ["defmt"] }
 smoltcp = { version = "0.12.0", default-features = false, features = [
   "defmt",
   "medium-ethernet",
@@ -56,8 +67,19 @@ smoltcp = { version = "0.12.0", default-features = false, features = [
   "socket-udp",
 ] }
 
+critical-section = "1.2.0"
+static_cell      = "2.1.1"
+
+reqwless = { rev="a08da453b57029c25e9b1a7a7e46079879e3635d",
+git="https://github.com/drogue-iot/reqwless.git", default-features=false, features = ["mbedtls-rs", "log"] }
+mbedtls-rs = {git = "https://github.com/esp-rs/mbedtls-rs.git"}
+
 [dev-dependencies]
-embedded-test = { version = "0.7.0", features = ["defmt"] }
+embedded-test = { version = "0.7.0", features = [
+  "defmt",
+  "embassy",
+  "external-executor",
+] }
 
 [profile.dev]
 # Rust debug is too slow.
