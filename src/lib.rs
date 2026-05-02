@@ -1,5 +1,6 @@
 #![no_std]
 
+pub mod dsmr;
 pub mod wifi;
 
 macro_rules! mk_static {

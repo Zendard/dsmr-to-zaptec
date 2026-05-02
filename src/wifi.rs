@@ -1,4 +1,4 @@
-use crate::mk_static;
+use crate::{dsmr, mk_static};
 use core::ffi::CStr;
 use defmt::info;
 use embassy_net::{
@@ -24,14 +24,17 @@ pub async fn init_wifi(
     wifi: WIFI<'static>,
     stack_resources: &'static mut StackResources<3>,
     spawner: embassy_executor::Spawner,
-) {
+) -> ReqwlessClient {
     let device = mk_static!(esp_radio::Controller, esp_radio::init().unwrap());
     let (controller, interface) =
         esp_radio::wifi::new(device, wifi, esp_radio::wifi::Config::default()).unwrap();
 
     let (stack, runner) = configure_controller(interface, stack_resources).await;
-    spawner.spawn(connection(controller, spawner, stack)).ok();
+    spawner.spawn(connection(controller)).ok();
     spawner.spawn(net_task(runner)).ok();
+    stack.wait_config_up().await;
+    let client = make_reqwless_client(stack).await;
+    client
 }
 
 async fn configure_controller(
@@ -53,11 +56,7 @@ async fn configure_controller(
 }
 
 #[embassy_executor::task]
-async fn connection(
-    mut controller: WifiController<'static>,
-    spawner: embassy_executor::Spawner,
-    stack: Stack<'static>,
-) {
+async fn connection(mut controller: WifiController<'static>) {
     info!("Starting connection task...");
 
     loop {
@@ -78,8 +77,6 @@ async fn connection(
                     continue;
                 }
             }
-            stack.wait_config_up().await;
-            make_reqwless_client(stack, spawner).await;
         }
     }
 }
@@ -109,11 +106,13 @@ async fn net_task(mut runner: Runner<'static, WifiDevice<'static>>) {
     runner.run().await
 }
 
-async fn make_reqwless_client(stack: Stack<'static>, spawner: embassy_executor::Spawner) {
+type ReqwlessClient = HttpClient<'static, TcpClient<'static, 1, 4096, 4096>, DnsSocket<'static>>;
+
+async fn make_reqwless_client(stack: Stack<'static>) -> ReqwlessClient {
     let state = mk_static!(TcpClientState<1,4096,4096>, TcpClientState::<1, 4096, 4096>::new());
-    let mut tcp_client = TcpClient::new(stack, &state);
-    let mut trng = Trng::try_new().unwrap();
-    let mbedtls_instance = mbedtls_rs::Tls::new(&mut trng).unwrap();
+    let tcp_client = mk_static!(TcpClient<1,4096,4096>,TcpClient::new(stack, state));
+    let trng = mk_static!(Trng, Trng::try_new().unwrap());
+    let mbedtls_instance = mk_static!(mbedtls_rs::Tls, mbedtls_rs::Tls::new(trng).unwrap());
     let dns_socket = mk_static!(DnsSocket, DnsSocket::new(stack));
 
     let cstr_cert: &CStr = &CStr::from_bytes_until_nul(CERT_BYTES).unwrap();
@@ -125,7 +124,6 @@ async fn make_reqwless_client(stack: Stack<'static>, spawner: embassy_executor::
         mbedtls_instance.reference(),
     );
 
-    let header_buf = [0; 1024];
-
-    let mut client = HttpClient::new_with_tls(&tcp_client, dns_socket, tls_config);
+    let client = HttpClient::new_with_tls(tcp_client, dns_socket, tls_config);
+    client
 }

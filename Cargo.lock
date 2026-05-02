@@ -429,6 +429,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "crc16"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "338089f42c427b86394a5ee60ff321da23a5c89c9d89514c829687b26359fcff"
+
+[[package]]
 name = "critical-section"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -682,6 +688,7 @@ version = "0.1.0"
 dependencies = [
  "critical-section",
  "defmt 1.0.1",
+ "dsmr5",
  "embassy-executor",
  "embassy-net",
  "embassy-time",
@@ -699,6 +706,16 @@ dependencies = [
  "rtt-target",
  "smoltcp 0.12.0",
  "static_cell",
+]
+
+[[package]]
+name = "dsmr5"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59bb2544d07d279d20c84c4ed9e928a7b972f9f8bfe3050b4acb92d3f8dfb73b"
+dependencies = [
+ "crc16",
+ "serde",
 ]
 
 [[package]]

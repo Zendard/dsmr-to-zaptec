@@ -60,7 +60,8 @@ async fn main(spawner: Spawner) -> ! {
     // TODO: Spawn some tasks
     let _ = spawner;
 
-    dsmr_to_zaptec::wifi::init_wifi(peripherals.WIFI, stack_resources, spawner).await;
+    let reqwless_client =
+        dsmr_to_zaptec::wifi::init_wifi(peripherals.WIFI, stack_resources, spawner).await;
 
     loop {}
 
