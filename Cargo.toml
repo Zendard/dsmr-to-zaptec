@@ -70,6 +70,10 @@ smoltcp = { version = "0.12.0", default-features = false, features = [
 critical-section = "1.2.0"
 static_cell      = "2.1.1"
 
+reqwless = { rev="a08da453b57029c25e9b1a7a7e46079879e3635d",
+git="https://github.com/drogue-iot/reqwless.git", default-features=false, features = ["mbedtls-rs", "log"] }
+mbedtls-rs = {git = "https://github.com/esp-rs/mbedtls-rs.git"}
+
 [dev-dependencies]
 embedded-test = { version = "0.7.0", features = [
   "defmt",
