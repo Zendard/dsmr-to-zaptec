@@ -1,7 +1,7 @@
 [package]
 edition      = "2024"
 name         = "dsmr-to-zaptec"
-rust-version = "1.88"
+rust-version = "1.91"
 version      = "0.1.0"
 
 [[bin]]
@@ -30,12 +30,13 @@ esp-rtos = { version = "0.2.0", features = [
 defmt                  = "1.0.1"
 esp-bootloader-esp-idf = { version = "0.4.0", features = ["defmt", "esp32c3"] }
 
-embassy-net = { version = "0.7.1", features = [
+embassy-net = { version = "0.9.0", features = [
   "defmt",
   "dhcpv4",
   "medium-ethernet",
   "tcp",
   "udp",
+  "dns",
 ] }
 embedded-io = { version = "0.7.1", features = ["defmt"] }
 embedded-io-async = { version = "0.7.0", features = ["defmt"] }

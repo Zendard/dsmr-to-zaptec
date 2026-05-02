@@ -1,14 +1,24 @@
 use crate::mk_static;
+use core::ffi::CStr;
 use defmt::info;
-use embassy_net::{Runner, Stack, StackResources};
+use embassy_net::{
+    Runner, Stack, StackResources,
+    dns::DnsSocket,
+    tcp::client::{TcpClient, TcpClientState},
+};
 use embassy_time::Timer;
 use esp_hal::{peripherals::WIFI, rng::Trng};
 use esp_radio::wifi::{
     ClientConfig, Interfaces, ModeConfig, ScanConfig, WifiController, WifiDevice, WifiEvent,
 };
+use reqwless::{
+    Certificate, TlsVersion,
+    client::{HttpClient, TlsConfig},
+};
 
 const SSID: &str = env!("WIFI_SSID");
 const PASSWORD: &str = env!("WIFI_PASSWORD");
+const CERT_BYTES: &'static [u8] = include_bytes!(env!("CERT_FILE"));
 
 pub async fn init_wifi(
     wifi: WIFI<'static>,
@@ -20,7 +30,7 @@ pub async fn init_wifi(
         esp_radio::wifi::new(device, wifi, esp_radio::wifi::Config::default()).unwrap();
 
     let (stack, runner) = configure_controller(interface, stack_resources).await;
-    spawner.spawn(connection(controller, spawner)).ok();
+    spawner.spawn(connection(controller, spawner, stack)).ok();
     spawner.spawn(net_task(runner)).ok();
 }
 
@@ -43,7 +53,11 @@ async fn configure_controller(
 }
 
 #[embassy_executor::task]
-async fn connection(mut controller: WifiController<'static>, spawner: embassy_executor::Spawner) {
+async fn connection(
+    mut controller: WifiController<'static>,
+    spawner: embassy_executor::Spawner,
+    stack: Stack<'static>,
+) {
     info!("Starting connection task...");
 
     loop {
@@ -61,8 +75,11 @@ async fn connection(mut controller: WifiController<'static>, spawner: embassy_ex
                 Err(e) => {
                     info!("Failed to connect to wifi: {}", e);
                     Timer::after_secs(5).await;
+                    continue;
                 }
             }
+            stack.wait_config_up().await;
+            make_reqwless_client(stack, spawner).await;
         }
     }
 }
@@ -90,4 +107,25 @@ async fn scan_wifi(controller: &mut WifiController<'static>) {
 #[embassy_executor::task]
 async fn net_task(mut runner: Runner<'static, WifiDevice<'static>>) {
     runner.run().await
+}
+
+async fn make_reqwless_client(stack: Stack<'static>, spawner: embassy_executor::Spawner) {
+    let state = mk_static!(TcpClientState<1,4096,4096>, TcpClientState::<1, 4096, 4096>::new());
+    let mut tcp_client = TcpClient::new(stack, &state);
+    let mut trng = Trng::try_new().unwrap();
+    let mbedtls_instance = mbedtls_rs::Tls::new(&mut trng).unwrap();
+    let dns_socket = mk_static!(DnsSocket, DnsSocket::new(stack));
+
+    let cstr_cert: &CStr = &CStr::from_bytes_until_nul(CERT_BYTES).unwrap();
+
+    let tls_config = TlsConfig::new(
+        TlsVersion::Tls1_3,
+        Certificate::new(reqwless::X509::PEM(cstr_cert)).unwrap(),
+        None,
+        mbedtls_instance.reference(),
+    );
+
+    let header_buf = [0; 1024];
+
+    let mut client = HttpClient::new_with_tls(&tcp_client, dns_socket, tls_config);
 }
