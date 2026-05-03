@@ -9,6 +9,7 @@
 
 use defmt::info;
 use dsmr_to_zaptec::DSMR_BUFFER_SIZE;
+use dsmr5::OBIS;
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use esp_hal::clock::CpuClock;
@@ -68,6 +69,7 @@ async fn main(spawner: Spawner) -> ! {
     let reqwless_client =
         dsmr_to_zaptec::wifi::init_wifi(peripherals.WIFI, stack_resources, spawner).await;
 
+    info!("Initializing DSMR stream...");
     // GPIO1: DSMR data request
     // GPIO2: DSMR data
     let dsmr_data_request_line =
@@ -88,6 +90,8 @@ async fn main(spawner: Spawner) -> ! {
 
     let dsmr_data_slice_ref = mk_static!([u8; DSMR_BUFFER_SIZE], dsmr_data_slice);
 
+    info!("UART initialized");
+
     spawner
         .spawn(dsmr_to_zaptec::dsmr::read_to_buffer(
             dsmr_data,
@@ -95,7 +99,41 @@ async fn main(spawner: Spawner) -> ! {
         ))
         .unwrap();
 
-    loop {}
+    info!("Starting main loop...");
+    loop {
+        let readout = dsmr_stream.next();
+        if readout.is_none() {
+            continue;
+        }
+        let readout = readout.unwrap().unwrap();
+        info!("Got readout");
 
-    // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0/examples
+        let telegram = readout.to_telegram();
+        if telegram.is_err() {
+            info!("Readout is not a telegram");
+            continue;
+        }
+        let telegram = telegram.unwrap();
+        info!("Parsed telegram");
+
+        let power_received: f64 = (&telegram
+            .objects()
+            .find_map(|i| match i {
+                Ok(OBIS::PowerReceived(number)) => Some(number),
+                _ => None,
+            })
+            .unwrap())
+            .into();
+        info!("Power received: {}", power_received);
+
+        let power_delivered: f64 = (&telegram
+            .objects()
+            .find_map(|i| match i {
+                Ok(OBIS::PowerDelivered(number)) => Some(number),
+                _ => None,
+            })
+            .unwrap())
+            .into();
+        info!("Power delivered: {}", power_delivered);
+    }
 }
