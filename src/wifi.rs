@@ -1,4 +1,4 @@
-use crate::{dsmr, mk_static};
+use crate::mk_static;
 use core::ffi::CStr;
 use defmt::info;
 use embassy_net::{
@@ -18,7 +18,7 @@ use reqwless::{
 
 const SSID: &str = env!("WIFI_SSID");
 const PASSWORD: &str = env!("WIFI_PASSWORD");
-const CERT_BYTES: &'static [u8] = include_bytes!(env!("CERT_FILE"));
+const CERT_BYTES: &[u8] = include_bytes!(env!("CERT_FILE"));
 
 pub async fn init_wifi(
     wifi: WIFI<'static>,
@@ -33,8 +33,7 @@ pub async fn init_wifi(
     spawner.spawn(connection(controller)).ok();
     spawner.spawn(net_task(runner)).ok();
     stack.wait_config_up().await;
-    let client = make_reqwless_client(stack).await;
-    client
+    make_reqwless_client(stack).await
 }
 
 async fn configure_controller(
@@ -115,7 +114,7 @@ async fn make_reqwless_client(stack: Stack<'static>) -> ReqwlessClient {
     let mbedtls_instance = mk_static!(mbedtls_rs::Tls, mbedtls_rs::Tls::new(trng).unwrap());
     let dns_socket = mk_static!(DnsSocket, DnsSocket::new(stack));
 
-    let cstr_cert: &CStr = &CStr::from_bytes_until_nul(CERT_BYTES).unwrap();
+    let cstr_cert: &CStr = CStr::from_bytes_until_nul(CERT_BYTES).unwrap();
 
     let tls_config = TlsConfig::new(
         TlsVersion::Tls1_3,
@@ -124,6 +123,5 @@ async fn make_reqwless_client(stack: Stack<'static>) -> ReqwlessClient {
         mbedtls_instance.reference(),
     );
 
-    let client = HttpClient::new_with_tls(tcp_client, dns_socket, tls_config);
-    client
+    HttpClient::new_with_tls(tcp_client, dns_socket, tls_config)
 }
