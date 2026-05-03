@@ -8,11 +8,14 @@
 #![deny(clippy::large_stack_frames)]
 
 use defmt::info;
+use dsmr_to_zaptec::DSMR_BUFFER_SIZE;
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use esp_hal::clock::CpuClock;
+use esp_hal::gpio::{Level, Output, OutputConfig};
 use esp_hal::rng::TrngSource;
 use esp_hal::timer::timg::TimerGroup;
+use esp_hal::uart;
 use panic_rtt_target as _;
 
 extern crate alloc;
@@ -28,6 +31,8 @@ macro_rules! mk_static {
     }};
     ($t:ty,$val:expr) => {{ mk_static!($t).write($val) }};
 }
+
+const DSMR_BAUD_RATE: u32 = 115200;
 
 #[allow(
     clippy::large_stack_frames,
@@ -62,6 +67,33 @@ async fn main(spawner: Spawner) -> ! {
 
     let reqwless_client =
         dsmr_to_zaptec::wifi::init_wifi(peripherals.WIFI, stack_resources, spawner).await;
+
+    // GPIO1: DSMR data request
+    // GPIO2: DSMR data
+    let dsmr_data_request_line =
+        Output::new(peripherals.GPIO1, Level::Low, OutputConfig::default());
+
+    let dsmr_data = uart::UartRx::new(
+        peripherals.UART0,
+        uart::Config::default().with_baudrate(DSMR_BAUD_RATE),
+    )
+    .unwrap()
+    .with_rx(peripherals.GPIO2)
+    .into_async();
+
+    let dsmr_data_slice = [0u8; DSMR_BUFFER_SIZE];
+    let dsmr_data_iter = dsmr_data_slice.iter().map(|i| Ok::<u8, uart::RxError>(*i));
+
+    let mut dsmr_stream = dsmr5::Reader::new(dsmr_data_iter);
+
+    let dsmr_data_slice_ref = mk_static!([u8; DSMR_BUFFER_SIZE], dsmr_data_slice);
+
+    spawner
+        .spawn(dsmr_to_zaptec::dsmr::read_to_buffer(
+            dsmr_data,
+            dsmr_data_slice_ref,
+        ))
+        .unwrap();
 
     loop {}
 

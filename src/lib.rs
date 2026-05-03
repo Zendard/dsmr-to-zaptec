@@ -12,3 +12,5 @@ macro_rules! mk_static {
 }
 
 pub(crate) use mk_static;
+
+pub const DSMR_BUFFER_SIZE: usize = 4096;
