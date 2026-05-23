@@ -8,8 +8,9 @@
 #![deny(clippy::large_stack_frames)]
 
 use defmt::info;
-use dsmr_to_zaptec::DSMR_BUFFER_SIZE;
-use dsmr5::OBIS;
+use dsmr_to_zaptec::dsmr::parse_readout;
+use dsmr_to_zaptec::zaptec::ZaptecRequester;
+use dsmr_to_zaptec::{DSMR_BUFFER_SIZE, calc_voltage};
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use esp_hal::clock::CpuClock;
@@ -68,11 +69,12 @@ async fn main(spawner: Spawner) -> ! {
 
     let reqwless_client =
         dsmr_to_zaptec::wifi::init_wifi(peripherals.WIFI, stack_resources, spawner).await;
+    let zaptec_client = ZaptecRequester::new(reqwless_client);
 
     info!("Initializing DSMR stream...");
     // GPIO1: DSMR data request
     // GPIO2: DSMR data
-    let dsmr_data_request_line =
+    let mut dsmr_data_request_line =
         Output::new(peripherals.GPIO1, Level::Low, OutputConfig::default());
 
     let dsmr_data = uart::UartRx::new(
@@ -101,39 +103,17 @@ async fn main(spawner: Spawner) -> ! {
 
     info!("Starting main loop...");
     loop {
+        dsmr_data_request_line.set_high();
         let readout = dsmr_stream.next();
-        if readout.is_none() {
+        dsmr_data_request_line.set_low();
+
+        let dsmr_reading = parse_readout(readout);
+        if dsmr_reading.is_none() {
+            info!("Couldn't parse readout");
             continue;
         }
-        let readout = readout.unwrap().unwrap();
-        info!("Got readout");
+        let dsmr_reading = dsmr_reading.unwrap();
 
-        let telegram = readout.to_telegram();
-        if telegram.is_err() {
-            info!("Readout is not a telegram");
-            continue;
-        }
-        let telegram = telegram.unwrap();
-        info!("Parsed telegram");
-
-        let power_received: f64 = (&telegram
-            .objects()
-            .find_map(|i| match i {
-                Ok(OBIS::PowerReceived(number)) => Some(number),
-                _ => None,
-            })
-            .unwrap())
-            .into();
-        info!("Power received: {}", power_received);
-
-        let power_delivered: f64 = (&telegram
-            .objects()
-            .find_map(|i| match i {
-                Ok(OBIS::PowerDelivered(number)) => Some(number),
-                _ => None,
-            })
-            .unwrap())
-            .into();
-        info!("Power delivered: {}", power_delivered);
+        let zaptec_settings = calc_voltage(dsmr_reading);
     }
 }

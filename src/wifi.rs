@@ -105,7 +105,8 @@ async fn net_task(mut runner: Runner<'static, WifiDevice<'static>>) {
     runner.run().await
 }
 
-type ReqwlessClient = HttpClient<'static, TcpClient<'static, 1, 4096, 4096>, DnsSocket<'static>>;
+pub type ReqwlessClient =
+    HttpClient<'static, TcpClient<'static, 1, 4096, 4096>, DnsSocket<'static>>;
 
 async fn make_reqwless_client(stack: Stack<'static>) -> ReqwlessClient {
     let state = mk_static!(TcpClientState<1,4096,4096>, TcpClientState::<1, 4096, 4096>::new());
