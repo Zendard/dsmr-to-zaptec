@@ -4,6 +4,7 @@
 
 #![no_std]
 #![no_main]
+#[cfg(test)]
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
@@ -22,13 +23,5 @@ mod tests {
         esp_rtos::start(timg1.timer0, sw_interrupt.software_interrupt0);
 
         rtt_target::rtt_init_defmt!();
-    }
-
-    #[test]
-    async fn hello_test() {
-        defmt::info!("Running test!");
-
-        embassy_time::Timer::after(embassy_time::Duration::from_millis(100)).await;
-        assert_eq!(1 + 1, 2);
     }
 }

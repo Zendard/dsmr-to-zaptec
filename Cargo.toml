@@ -15,6 +15,7 @@ name    = "hello_test"
 
 [lib]
 test = false
+harness = false
 
 [dependencies]
 esp-hal = { version = "~1.0", features = ["defmt", "esp32c3", "unstable"] }

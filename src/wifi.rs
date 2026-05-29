@@ -4,7 +4,7 @@ use defmt::info;
 use embassy_net::{
     Runner, Stack, StackResources,
     dns::DnsSocket,
-    tcp::client::{TcpClient, TcpClientState},
+    tcp::client::{TcpClient, TcpClientState, TcpConnection},
 };
 use embassy_time::Timer;
 use esp_hal::{peripherals::WIFI, rng::Trng};
@@ -107,6 +107,7 @@ async fn net_task(mut runner: Runner<'static, WifiDevice<'static>>) {
 
 pub type ReqwlessClient =
     HttpClient<'static, TcpClient<'static, 1, 4096, 4096>, DnsSocket<'static>>;
+pub type ReqwlessConnection<'a> = TcpConnection<'a, 1, 4096, 4096>;
 
 async fn make_reqwless_client(stack: Stack<'static>) -> ReqwlessClient {
     let state = mk_static!(TcpClientState<1,4096,4096>, TcpClientState::<1, 4096, 4096>::new());
