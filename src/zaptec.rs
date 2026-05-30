@@ -34,7 +34,7 @@ impl ZaptecRequester {
         Ok(())
     }
 
-    async fn request_token<'b>(https_client: &'b mut ReqwlessClient) -> Option<[u8; 4096]> {
+    async fn request_token(https_client: &mut ReqwlessClient) -> Option<[u8; 4096]> {
         let mut request = Self::make_token_request(https_client).await?;
         let mut rx_buf = [0u8; 4096];
         let response = request.send(&mut rx_buf).await.ok()?;

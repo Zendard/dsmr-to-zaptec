@@ -1,15 +1,11 @@
-//! Demo test suite using embedded-test
-//!
-//! You can run this using `cargo test` as usual.
-
 #![no_std]
 #![no_main]
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
+#[cfg(test)]
 #[embedded_test::tests(executor = esp_rtos::embassy::Executor::new())]
 mod tests {
-    use core::error::Error;
     use defmt::info;
     use dsmr_to_zaptec::*;
     use embassy_net::StackResources;
