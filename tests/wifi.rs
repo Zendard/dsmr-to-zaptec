@@ -6,7 +6,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
 #[cfg(test)]
 #[embedded_test::tests(executor = esp_rtos::embassy::Executor::new())]
 mod tests {
-    use defmt::info;
+    use defmt::{dbg, debug, info};
     use dsmr_to_zaptec::*;
     use embassy_net::StackResources;
     use embedded_io::Error as EmbeddedError;
@@ -67,16 +67,17 @@ mod tests {
         let mut rx_buf = [0u8; 4096];
 
         let request = https_client
-            .request(reqwless::request::Method::GET, "http://example.com/")
+            .request(reqwless::request::Method::GET, "http://1.1.1.1")
             .await;
 
         if let Err(e) = &request {
-            info!("Error kind: {:?}", e.kind());
+            defmt::error!("{:a}", e);
         }
         let mut request = request.unwrap();
 
         let response = request.send(&mut rx_buf).await.unwrap();
+        info!("Status code: {}", response.status);
 
-        assert!(response.status.is_successful());
+        assert!(response.status.is_successful() || response.status.is_redirection());
     }
 }

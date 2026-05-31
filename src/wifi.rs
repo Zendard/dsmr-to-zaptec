@@ -1,6 +1,6 @@
 use crate::mk_static;
 use core::ffi::CStr;
-use defmt::info;
+use defmt::{dbg, info};
 use embassy_net::{
     Runner, Stack, StackResources,
     dns::DnsSocket,
@@ -33,6 +33,8 @@ pub async fn init_wifi(
     spawner.spawn(connection(controller)).ok();
     spawner.spawn(net_task(runner)).ok();
     stack.wait_config_up().await;
+    stack.wait_link_up().await;
+    info!("Network stack: {:?}", stack.config_v4());
     make_reqwless_client(stack).await
 }
 
@@ -116,18 +118,20 @@ async fn make_reqwless_client(stack: Stack<'static>) -> ReqwlessClient {
     info!("Building Reqwless client");
     let state = mk_static!(TcpClientState<1,4096,4096>, TcpClientState::<1, 4096, 4096>::new());
     let tcp_client = mk_static!(TcpClient<1,4096,4096>,TcpClient::new(stack, state));
-    let trng = mk_static!(Trng, Trng::try_new().unwrap());
-    let mbedtls_instance = mk_static!(mbedtls_rs::Tls, mbedtls_rs::Tls::new(trng).unwrap());
+    // let trng = mk_static!(Trng, Trng::try_new().unwrap());
+    // let mbedtls_instance = mk_static!(mbedtls_rs::Tls, mbedtls_rs::Tls::new(trng).unwrap());
     let dns_socket = mk_static!(DnsSocket, DnsSocket::new(stack));
 
-    let cstr_cert: &CStr = CStr::from_bytes_with_nul(CERT_BYTES).unwrap();
+    // let cstr_cert: &CStr = CStr::from_bytes_with_nul(CERT_BYTES).unwrap();
 
-    let tls_config = TlsConfig::new(
-        TlsVersion::Tls1_3,
-        Certificate::new(reqwless::X509::PEM(cstr_cert)).unwrap(),
-        None,
-        mbedtls_instance.reference(),
-    );
+    // let tls_config = TlsConfig::new(
+    //     TlsVersion::Tls1_3,
+    //     Certificate::new(reqwless::X509::PEM(cstr_cert)).unwrap(),
+    //     None,
+    //     mbedtls_instance.reference(),
+    // );
+    //
+    // HttpClient::new_with_tls(tcp_client, dns_socket, tls_config)
 
-    HttpClient::new_with_tls(tcp_client, dns_socket, tls_config)
+    HttpClient::new(tcp_client, dns_socket)
 }

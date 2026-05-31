@@ -72,8 +72,8 @@ critical-section = "1.2.0"
 static_cell      = "2.1.1"
 
 reqwless = { rev="a08da453b57029c25e9b1a7a7e46079879e3635d",
-git="https://github.com/drogue-iot/reqwless.git", default-features=false, features = ["mbedtls-rs", "log"] }
-mbedtls-rs = {git = "https://github.com/esp-rs/mbedtls-rs.git"}
+git="https://github.com/drogue-iot/reqwless.git", default-features=false, features = ["mbedtls-rs","defmt"] }
+mbedtls-rs = {git = "https://github.com/esp-rs/mbedtls-rs.git", features = ["defmt"]}
 dsmr5 = "0.4.0"
 
 [dev-dependencies]
