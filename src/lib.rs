@@ -3,6 +3,7 @@
 use crate::{dsmr::DSMRReading, zaptec::ZaptecSettings};
 
 pub mod dsmr;
+pub mod led;
 pub mod wifi;
 pub mod zaptec;
 

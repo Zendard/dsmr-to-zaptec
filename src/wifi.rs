@@ -1,6 +1,5 @@
 use crate::mk_static;
-use core::ffi::CStr;
-use defmt::{dbg, info};
+use defmt::info;
 use embassy_net::{
     Runner, Stack, StackResources,
     dns::DnsSocket,
@@ -12,13 +11,14 @@ use esp_radio::wifi::{
     ClientConfig, Interfaces, ModeConfig, ScanConfig, WifiController, WifiDevice, WifiEvent,
 };
 use reqwless::{
-    Certificate, TlsVersion,
-    client::{HttpClient, TlsConfig},
+    // Certificate, TlsVersion,
+    // client::TlsConfig,
+    client::HttpClient,
 };
 
 const SSID: &str = env!("WIFI_SSID");
 const PASSWORD: &str = env!("WIFI_PASSWORD");
-const CERT_BYTES: &[u8] = concat!(include_str!(env!("CERT_FILE")), "\0").as_bytes();
+// const CERT_BYTES: &[u8] = concat!(include_str!(env!("CERT_FILE")), "\0").as_bytes();
 
 pub async fn init_wifi(
     wifi: WIFI<'static>,

@@ -6,10 +6,12 @@ esp_bootloader_esp_idf::esp_app_desc!();
 #[cfg(test)]
 #[embedded_test::tests(executor = esp_rtos::embassy::Executor::new())]
 mod tests {
-    use defmt::info;
-    use dsmr_to_zaptec::*;
+    use defmt::{error, info};
+    use dsmr_to_zaptec::led::RGBLED;
     use embassy_net::StackResources;
+    use embassy_time::Timer;
     use esp_hal::{clock::CpuClock, peripherals::WIFI, rng::TrngSource, timer::timg::TimerGroup};
+    use smart_leds::colors;
 
     macro_rules! mk_static {
         ($t:ty) => {{
@@ -21,6 +23,7 @@ mod tests {
 
     struct Init<'a> {
         wifi: WIFI<'a>,
+        led: RGBLED<'a>,
         spawner: embassy_executor::Spawner,
         stack_resources: &'a mut StackResources<3>,
     }
@@ -48,35 +51,31 @@ mod tests {
         let spawner = unsafe { embassy_executor::Spawner::for_current_executor() }.await;
         info!("Embassy initialized!");
 
+        let led = RGBLED::new(peripherals.GPIO8, peripherals.RMT).await;
+        if let Err(e) = &led {
+            error!("RGBLED error: {}", e);
+        }
+        let led = led.unwrap();
+
         Init {
             wifi: peripherals.WIFI,
-            spawner,
+            led,
             stack_resources,
+            spawner,
         }
     }
 
     #[test]
-    async fn init_wifi(init: Init<'static>) {
-        wifi::init_wifi(init.wifi, init.stack_resources, init.spawner).await;
-    }
-
-    #[test]
-    async fn http_request(init: Init<'static>) {
-        let mut https_client = wifi::init_wifi(init.wifi, init.stack_resources, init.spawner).await;
-        let mut rx_buf = [0u8; 4096];
-
-        let request = https_client
-            .request(reqwless::request::Method::GET, "http://1.1.1.1")
-            .await;
-
-        if let Err(e) = &request {
-            defmt::error!("{:a}", e);
-        }
-        let mut request = request.unwrap();
-
-        let response = request.send(&mut rx_buf).await.unwrap();
-        info!("Status code: {}", response.status);
-
-        assert!(response.status.is_successful() || response.status.is_redirection());
+    async fn test_led(init: Init<'static>) {
+        let mut led = init.led;
+        led.set_color(colors::RED).await.unwrap();
+        Timer::after_secs(2).await;
+        led.set_color(colors::GREEN).await.unwrap();
+        Timer::after_secs(2).await;
+        led.set_color(colors::BLUE).await.unwrap();
+        Timer::after_secs(2).await;
+        led.set_color(colors::WHITE).await.unwrap();
+        Timer::after_secs(2).await;
+        led.set_color(colors::BLACK).await.unwrap();
     }
 }
