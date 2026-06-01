@@ -1,4 +1,4 @@
-use crate::mk_static;
+use crate::{error::led::RGBLEDError, mk_static};
 use esp_hal::{
     gpio::OutputPin,
     peripherals::RMT,
@@ -11,24 +11,6 @@ use smart_leds::{RGB, SmartLedsWriteAsync};
 #[derive(defmt::Format)]
 pub struct RGBLED<'a> {
     adapter: esp_hal_smartled::SmartLedsAdapterAsync<'a, 25>,
-}
-
-#[derive(Debug, defmt::Format)]
-pub enum RGBLEDError {
-    RmtError(esp_hal::rmt::Error),
-    LedAdapterError(esp_hal_smartled::LedAdapterError),
-}
-
-impl From<esp_hal::rmt::Error> for RGBLEDError {
-    fn from(e: esp_hal::rmt::Error) -> Self {
-        Self::RmtError(e)
-    }
-}
-
-impl From<esp_hal_smartled::LedAdapterError> for RGBLEDError {
-    fn from(e: esp_hal_smartled::LedAdapterError) -> Self {
-        Self::LedAdapterError(e)
-    }
 }
 
 impl<'a> RGBLED<'a> {

@@ -57,16 +57,20 @@ mod tests {
 
     #[test]
     async fn init_wifi(init: Init<'static>) {
-        wifi::init_wifi(init.wifi, init.stack_resources, init.spawner).await;
+        wifi::init_wifi(init.wifi, init.stack_resources, init.spawner)
+            .await
+            .unwrap();
     }
 
     #[test]
     async fn http_request(init: Init<'static>) {
-        let mut https_client = wifi::init_wifi(init.wifi, init.stack_resources, init.spawner).await;
+        let mut https_client = wifi::init_wifi(init.wifi, init.stack_resources, init.spawner)
+            .await
+            .unwrap();
         let mut rx_buf = [0u8; 4096];
 
         let request = https_client
-            .request(reqwless::request::Method::GET, "http://1.1.1.1")
+            .request(reqwless::request::Method::GET, "http://example.com")
             .await;
 
         if let Err(e) = &request {

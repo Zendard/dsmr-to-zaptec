@@ -68,8 +68,12 @@ async fn main(spawner: Spawner) -> ! {
     let _ = spawner;
 
     let reqwless_client =
-        dsmr_to_zaptec::wifi::init_wifi(peripherals.WIFI, stack_resources, spawner).await;
-    let zaptec_client = ZaptecRequester::new(reqwless_client);
+        dsmr_to_zaptec::wifi::init_wifi(peripherals.WIFI, stack_resources, spawner)
+            .await
+            .expect("Failed to create reqwless client");
+    let zaptec_client = ZaptecRequester::new(reqwless_client)
+        .await
+        .expect("Failed to create zaptec requester");
 
     info!("Initializing DSMR stream...");
     // GPIO1: DSMR data request
