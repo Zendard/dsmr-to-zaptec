@@ -18,9 +18,8 @@ mod tests {
 
     #[init]
     async fn init() -> Init<'static> {
-        info!("Starting...");
-
         rtt_target::rtt_init_defmt!();
+        info!("Starting...");
 
         let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
         let peripherals = esp_hal::init(config);

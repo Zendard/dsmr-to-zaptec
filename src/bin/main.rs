@@ -42,12 +42,12 @@ const DSMR_BAUD_RATE: u32 = 115200;
 )]
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> ! {
+    rtt_target::rtt_init_defmt!();
     // generator version: 1.2.0
 
     info!("Starting...");
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: HEAP_SIZE);
-
-    rtt_target::rtt_init_defmt!();
+    esp_alloc::heap_allocator!(size: 36 * 1024);
 
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
