@@ -8,24 +8,12 @@ esp_bootloader_esp_idf::esp_app_desc!();
 mod tests {
     use defmt::{error, info};
     use dsmr_to_zaptec::led::RGBLED;
-    use embassy_net::StackResources;
     use embassy_time::Timer;
-    use esp_hal::{clock::CpuClock, peripherals::WIFI, rng::TrngSource, timer::timg::TimerGroup};
+    use esp_hal::{clock::CpuClock, rng::TrngSource, timer::timg::TimerGroup};
     use smart_leds::colors;
 
-    macro_rules! mk_static {
-        ($t:ty) => {{
-            static STATIC_CELL: static_cell::StaticCell<$t> = static_cell::StaticCell::new();
-            STATIC_CELL.uninit()
-        }};
-        ($t:ty,$val:expr) => {{ mk_static!($t).write($val) }};
-    }
-
     struct Init<'a> {
-        wifi: WIFI<'a>,
         led: RGBLED<'a>,
-        spawner: embassy_executor::Spawner,
-        stack_resources: &'a mut StackResources<3>,
     }
 
     #[init]
@@ -46,23 +34,13 @@ mod tests {
 
         let _trng_src = TrngSource::new(peripherals.RNG, peripherals.ADC1);
 
-        let stack_resources = mk_static!(StackResources<3>, StackResources::new());
-
-        let spawner = unsafe { embassy_executor::Spawner::for_current_executor() }.await;
-        info!("Embassy initialized!");
-
         let led = RGBLED::new(peripherals.GPIO8, peripherals.RMT).await;
         if let Err(e) = &led {
             error!("RGBLED error: {}", e);
         }
         let led = led.unwrap();
 
-        Init {
-            wifi: peripherals.WIFI,
-            led,
-            stack_resources,
-            spawner,
-        }
+        Init { led }
     }
 
     #[test]
