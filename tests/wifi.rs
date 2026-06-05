@@ -27,14 +27,15 @@ mod tests {
 
     #[init]
     async fn init() -> Init<'static> {
-        info!("Starting...");
-
         rtt_target::rtt_init_defmt!();
+
+        info!("Starting...");
 
         let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
         let peripherals = esp_hal::init(config);
 
-        esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 66320);
+        esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: HEAP_SIZE);
+        esp_alloc::heap_allocator!(size: 36 * 1024);
 
         let timg0 = TimerGroup::new(peripherals.TIMG0);
         let sw_interrupt =
@@ -70,7 +71,7 @@ mod tests {
         let mut rx_buf = [0u8; 4096];
 
         let request = https_client
-            .request(reqwless::request::Method::GET, "http://example.com")
+            .request(reqwless::request::Method::GET, "http://api.zaptec.com")
             .await;
 
         if let Err(e) = &request {

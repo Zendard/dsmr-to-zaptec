@@ -18,6 +18,7 @@ macro_rules! mk_static {
 pub(crate) use mk_static;
 
 pub const DSMR_BUFFER_SIZE: usize = 4096;
+pub const HEAP_SIZE: usize = 1024 * 64;
 
 pub fn calc_voltage(dsmr_reading: DSMRReading) -> ZaptecSettings {
     let leftover_wattage = dsmr_reading.power_received - dsmr_reading.power_delivered;
