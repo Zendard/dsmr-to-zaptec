@@ -93,8 +93,21 @@ reqwless = {
   features = ["defmt", "mbedtls-rs"]
 }
 
+# reqwless = {
+#   git = "https://github.com/drogue-iot/reqwless.git",
+#   rev = "a08da453b57029c25e9b1a7a7e46079879e3635d",
+#   features = ["defmt", "mbedtls-rs"]
+# }
+
+# mbedtls-rs = {
+#   path = "../mbedtls-rs/mbedtls-rs/",
+#   features = ["defmt", "esp32c3"]
+# }
+
 mbedtls-rs = {
-  path = "../mbedtls-rs/mbedtls-rs/",
+  git = "https://github.com/esp-rs/mbedtls-rs.git",
+  # rev = "9852996015d390536bf2084f0f6c3d33da53f211",
+  default-features = false,
   features = ["defmt", "esp32c3"]
 }
 

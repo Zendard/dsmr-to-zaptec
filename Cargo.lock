@@ -2423,6 +2423,7 @@ dependencies = [
 [[package]]
 name = "mbedtls-rs"
 version = "0.1.0"
+source = "git+https://github.com/esp-rs/mbedtls-rs.git#9852996015d390536bf2084f0f6c3d33da53f211"
 dependencies = [
  "critical-section",
  "defmt 1.1.0",
@@ -2431,12 +2432,13 @@ dependencies = [
  "embedded-io-async 0.7.0",
  "enumset",
  "mbedtls-rs-sys",
- "rand_core 0.9.5",
+ "rand_core 0.10.1",
 ]
 
 [[package]]
 name = "mbedtls-rs-sys"
 version = "0.1.0"
+source = "git+https://github.com/esp-rs/mbedtls-rs.git#9852996015d390536bf2084f0f6c3d33da53f211"
 dependencies = [
  "anyhow",
  "bindgen 0.72.1",
