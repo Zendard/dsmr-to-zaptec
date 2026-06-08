@@ -10,7 +10,7 @@
 use defmt::info;
 use dsmr_to_zaptec::dsmr::parse_readout;
 use dsmr_to_zaptec::zaptec::ZaptecRequester;
-use dsmr_to_zaptec::{DSMR_BUFFER_SIZE, HEAP_SIZE, calc_voltage};
+use dsmr_to_zaptec::{DSMR_BUFFER_SIZE, HEAP_SIZE, RECLAIMED_RAM, calc_voltage};
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use esp_hal::clock::CpuClock;
@@ -46,8 +46,8 @@ async fn main(spawner: Spawner) -> ! {
     // generator version: 1.2.0
 
     info!("Starting...");
-    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: HEAP_SIZE);
-    // esp_alloc::heap_allocator!(size: 36 * 1024);
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: RECLAIMED_RAM);
+    esp_alloc::heap_allocator!(size: HEAP_SIZE - RECLAIMED_RAM);
 
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);

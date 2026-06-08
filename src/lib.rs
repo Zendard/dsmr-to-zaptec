@@ -19,8 +19,8 @@ use esp_metadata_generated::memory_range;
 pub(crate) use mk_static;
 
 pub const DSMR_BUFFER_SIZE: usize = 4096;
-// pub const HEAP_SIZE: usize = 1024 * 64;
-pub const HEAP_SIZE: usize =
+pub const HEAP_SIZE: usize = 128 * 1024;
+pub const RECLAIMED_RAM: usize =
     memory_range!("DRAM2_UNINIT").end - memory_range!("DRAM2_UNINIT").start;
 
 pub fn calc_voltage(dsmr_reading: DSMRReading) -> ZaptecSettings {

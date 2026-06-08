@@ -32,8 +32,8 @@ mod tests {
         let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
         let peripherals = esp_hal::init(config);
 
-        esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: HEAP_SIZE);
-        esp_alloc::heap_allocator!( size: 256*1024 - HEAP_SIZE);
+        esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: RECLAIMED_RAM);
+        esp_alloc::heap_allocator!( size: HEAP_SIZE - RECLAIMED_RAM);
 
         let timg0 = TimerGroup::new(peripherals.TIMG0);
         let sw_interrupt =
