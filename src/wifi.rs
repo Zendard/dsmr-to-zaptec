@@ -86,7 +86,6 @@ async fn start_controller(controller: &mut WifiController<'static>) -> Result<()
             .with_ssid(SSID)
             .with_password(PASSWORD.into()),
     );
-    info!("{:?}", &config);
     controller.set_config(&config)?;
     info!("Wifi started");
     Ok(())
@@ -97,7 +96,6 @@ async fn scan_wifi(controller: &mut WifiController<'static>) -> Result<(), WifiE
     let config = ScanConfig::default().with_max(10);
     let result = controller.scan_async(&config).await?;
     info!("Scanned wifi networks");
-    info!("{:?}", result.as_slice());
     Ok(())
 }
 
@@ -116,12 +114,12 @@ async fn make_reqwless_client(stack: Stack<'static>) -> Result<ReqwlessClient, W
     let tcp_client = mk_static!(TcpClient<1,4096,4096>,TcpClient::new(stack, state));
     let trng = mk_static!(Trng, Trng::try_new()?);
     let mbedtls_instance = mk_static!(mbedtls_rs::Tls, mbedtls_rs::Tls::new(trng)?);
-    mbedtls_instance.set_debug(6);
+    // mbedtls_instance.set_debug(6);
     let dns_socket = mk_static!(DnsSocket, DnsSocket::new(stack));
 
     let cert = Certificate::new_no_copy(CERT_BYTES)?;
 
-    let tls_config = TlsConfig::new(TlsVersion::Tls1_2, cert, None, mbedtls_instance.reference());
+    let tls_config = TlsConfig::new(TlsVersion::Tls1_3, cert, None, mbedtls_instance.reference());
 
     Ok(HttpClient::new_with_tls(tcp_client, dns_socket, tls_config))
 }
