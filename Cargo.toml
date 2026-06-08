@@ -1,8 +1,11 @@
 [package]
-edition      = "2024"
-name         = "dsmr-to-zaptec"
+name = "dsmr-to-zaptec"
+version = "0.1.0"
+edition = "2024"
 rust-version = "1.91"
-version      = "0.1.0"
+
+[lib]
+test = false
 
 [[bin]]
 name = "dsmr-to-zaptec"
@@ -11,83 +14,110 @@ test = false
 
 [[test]]
 harness = false
-name    = "wifi"
+name = "wifi"
 
 [[test]]
 harness = false
 name = "led"
 
-[lib]
-test = false
-
 [dependencies]
-esp-hal = { version = "~1.0", features = ["defmt", "esp32c3", "unstable"] }
+esp-hal = { version = "~1.1", features = ["defmt", "esp32c3", "unstable"] }
 
-esp-rtos = { version = "0.2.0", features = [
-  "defmt",
-  "embassy",
-  "esp-alloc",
-  "esp-radio",
-  "esp32c3",
-] }
+esp-rtos = {
+  version = "0.3.0",
+  features = [
+    "defmt",
+    "embassy",
+    "esp-alloc",
+    "esp-radio",
+    "esp32c3",
+  ]
+}
 
-defmt                  = "1.0.1"
-esp-bootloader-esp-idf = { version = "0.4.0", features = ["defmt", "esp32c3"] }
+defmt = "1.0.1"
+esp-bootloader-esp-idf = { version = "0.5.0", features = ["defmt", "esp32c3"] }
 
-embassy-net = { version = "0.9.0", features = [
-  "defmt",
-  "dhcpv4",
-  "medium-ethernet",
-  "tcp",
-  "udp",
-  "dns",
-] }
+# for more networking protocol support see https://crates.io/crates/edge-net
+embassy-executor = { version = "0.10.0", features = ["defmt"] }
+embassy-net = {
+  version = "0.9.0",
+  features = [
+    "defmt",
+    "dhcpv4",
+    "dns",
+    "medium-ethernet",
+    "tcp",
+    "udp",
+  ]
+}
+embassy-time = { version = "0.5.0", features = ["defmt"] }
 embedded-io = { version = "0.7.1", features = ["defmt"] }
 embedded-io-async = { version = "0.7.0", features = ["defmt"] }
-esp-alloc = { version = "0.9.0", features = ["defmt"] }
+esp-alloc = { version = "0.10.0", features = ["defmt"] }
+esp-radio = {
+  version = "0.18.0",
+  features = [
+    "defmt",
+    "esp-alloc",
+    "esp32c3",
+    "unstable",
+    "wifi",
+  ]
+}
 panic-rtt-target = { version = "0.2.0", features = ["defmt"] }
 rtt-target = { version = "0.6.2", features = ["defmt"] }
-# for more networking protocol support see https://crates.io/crates/edge-net
-embassy-executor = { version = "0.9.1", features = ["defmt"] }
-embassy-time = { version = "0.5.0", features = ["defmt"] }
-esp-radio = { version = "0.17.0", features = [
-  "defmt",
-  "esp-alloc",
-  "esp32c3",
-  "smoltcp",
-  "unstable",
-  "wifi",
-] }
-smoltcp = { version = "0.12.0", default-features = false, features = [
-  "defmt",
-  "medium-ethernet",
-  "multicast",
-  "proto-dhcpv4",
-  "proto-dns",
-  "proto-ipv4",
-  "socket-dns",
-  "socket-icmp",
-  "socket-raw",
-  "socket-tcp",
-  "socket-udp",
-] }
+smoltcp = {
+  version = "0.13.1",
+  default-features = false,
+  features = [
+    "defmt",
+    "medium-ethernet",
+    "multicast",
+    "proto-dhcpv4",
+    "proto-dns",
+    "proto-ipv4",
+    "socket-dns",
+    "socket-icmp",
+    "socket-raw",
+    "socket-tcp",
+    "socket-udp",
+  ]
+}
 
 critical-section = "1.2.0"
-static_cell      = "2.1.1"
+static_cell = "2.1.1"
 
-reqwless = { rev="a08da453b57029c25e9b1a7a7e46079879e3635d",
-git="https://github.com/drogue-iot/reqwless.git", default-features=false, features = ["mbedtls-rs","defmt"] }
-mbedtls-rs = {git = "https://github.com/esp-rs/mbedtls-rs.git", features = ["defmt"]}
+reqwless = {
+  path = "../reqwless/",
+  default-features = false,
+  features = ["defmt", "mbedtls-rs"]
+}
+
+mbedtls-rs = {
+  path = "../mbedtls-rs/mbedtls-rs/",
+  features = ["defmt", "esp32c3"]
+}
+
 dsmr5 = "0.4.0"
-esp-hal-smartled = { version = "0.17.0", features = ["defmt", "esp32c3"] }
+esp-hal-smartled = {
+  git = "https://github.com/esp-rs/esp-hal-community.git",
+  rev = "728d7f9b6024f7a0b9eeaa732178da42b76c9c8c",
+  features = ["defmt", "esp32c3"]
+}
+
+esp-metadata-generated = { version = "0.4.0", features = ["esp32c3"] }
+rand_core = "0.10.1"
 smart-leds = "0.4.0"
 
 [dev-dependencies]
-embedded-test = { version = "0.7.0", features = [
-  "defmt",
-  "embassy",
-  "external-executor",
-] }
+embedded-test = {
+  version = "0.7.1",
+  features = [
+    "defmt",
+    "embassy-010",
+    "external-executor",
+  ]
+}
 
 [profile.dev]
 # Rust debug is too slow.
@@ -95,10 +125,10 @@ embedded-test = { version = "0.7.0", features = [
 opt-level = "s"
 
 [profile.release]
-codegen-units    = 1     # LLVM can perform better optimizations using a single thread
-debug            = 2
+opt-level = "s"
+debug = 2
 debug-assertions = false
-incremental      = false
-lto              = 'fat'
-opt-level        = 's'
-overflow-checks  = false
+overflow-checks = false
+lto = "fat"
+incremental = false
+codegen-units = 1  # LLVM can perform better optimizations using a single thread

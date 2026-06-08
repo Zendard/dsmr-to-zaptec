@@ -18,6 +18,7 @@ use esp_hal::gpio::{Level, Output, OutputConfig};
 use esp_hal::rng::TrngSource;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::uart;
+use mbedtls_rs::sys::hook::backend::esp::{EspAccel, EspAccelQueue};
 use panic_rtt_target as _;
 
 extern crate alloc;
@@ -42,12 +43,11 @@ const DSMR_BAUD_RATE: u32 = 115200;
 )]
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> ! {
-    rtt_target::rtt_init_defmt!();
     // generator version: 1.2.0
 
     info!("Starting...");
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: HEAP_SIZE);
-    esp_alloc::heap_allocator!(size: 36 * 1024);
+    // esp_alloc::heap_allocator!(size: 36 * 1024);
 
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
@@ -59,12 +59,15 @@ async fn main(spawner: Spawner) -> ! {
 
     let _trng_src = TrngSource::new(peripherals.RNG, peripherals.ADC1);
 
+    let accel = mk_static!(EspAccel, EspAccel::new(peripherals.SHA, peripherals.RSA));
+    let accel_queue = accel.start();
+    mk_static!(EspAccelQueue, accel_queue);
+
     let stack_resources = mk_static!(StackResources<3>, StackResources::new());
 
-    info!("Embassy initialized!");
+    rtt_target::rtt_init_defmt!();
 
-    // TODO: Spawn some tasks
-    let _ = spawner;
+    info!("Embassy initialized!");
 
     let reqwless_client =
         dsmr_to_zaptec::wifi::init_wifi(peripherals.WIFI, stack_resources, spawner)
@@ -97,12 +100,7 @@ async fn main(spawner: Spawner) -> ! {
 
     info!("UART initialized");
 
-    spawner
-        .spawn(dsmr_to_zaptec::dsmr::read_to_buffer(
-            dsmr_data,
-            dsmr_data_slice_ref,
-        ))
-        .unwrap();
+    spawner.spawn(dsmr_to_zaptec::dsmr::read_to_buffer(dsmr_data, dsmr_data_slice_ref).unwrap());
 
     info!("Starting main loop...");
     loop {
