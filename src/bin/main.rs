@@ -9,7 +9,7 @@
 
 use defmt::info;
 use dsmr_to_zaptec::dsmr::parse_readout;
-use dsmr_to_zaptec::zaptec::ZaptecRequester;
+use dsmr_to_zaptec::zaptec::ZaptecClient;
 use dsmr_to_zaptec::{DSMR_BUFFER_SIZE, HEAP_SIZE, RECLAIMED_RAM, calc_voltage};
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
@@ -73,7 +73,7 @@ async fn main(spawner: Spawner) -> ! {
         dsmr_to_zaptec::wifi::init_wifi(peripherals.WIFI, stack_resources, spawner)
             .await
             .expect("Failed to create reqwless client");
-    let zaptec_client = ZaptecRequester::new(reqwless_client)
+    let zaptec_client = ZaptecClient::new(reqwless_client)
         .await
         .expect("Failed to create zaptec requester");
 
