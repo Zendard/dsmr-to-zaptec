@@ -20,6 +20,10 @@ name = "wifi"
 harness = false
 name = "led"
 
+[[test]]
+harness = false
+name = "zaptec"
+
 [dependencies]
 esp-hal = { version = "~1.1", features = ["defmt", "esp32c3", "unstable"] }
 
@@ -118,6 +122,7 @@ esp-hal-smartled = {
   features = ["defmt", "esp32c3"]
 }
 
+const_format = "0.2.36"
 esp-metadata-generated = { version = "0.4.0", features = ["esp32c3"] }
 rand_core = "0.10.1"
 smart-leds = "0.4.0"

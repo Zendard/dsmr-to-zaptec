@@ -853,6 +853,7 @@ dependencies = [
 name = "dsmr-to-zaptec"
 version = "0.1.0"
 dependencies = [
+ "const_format",
  "critical-section",
  "defmt 1.1.0",
  "dsmr5",
