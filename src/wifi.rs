@@ -29,7 +29,7 @@ pub async fn init_wifi(
     stack.wait_config_up().await;
     stack.wait_link_up().await;
     info!("Network stack: {:?}", stack.config_v4());
-    Ok(make_reqwless_client(stack).await?)
+    make_reqwless_client(stack).await
 }
 
 async fn configure_controller(
@@ -94,7 +94,7 @@ async fn start_controller(controller: &mut WifiController<'static>) -> Result<()
 async fn scan_wifi(controller: &mut WifiController<'static>) -> Result<(), WifiError> {
     info!("Scanning wifi networks...");
     let config = ScanConfig::default().with_max(10);
-    let result = controller.scan_async(&config).await?;
+    controller.scan_async(&config).await?;
     info!("Scanned wifi networks");
     Ok(())
 }
