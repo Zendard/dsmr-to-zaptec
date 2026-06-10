@@ -4,7 +4,6 @@ use crate::{
     wifi::{ReqwlessClient, ReqwlessConnection},
 };
 use const_format::formatcp;
-use defmt::info;
 use embassy_time::{Duration, Instant};
 use reqwless::{
     client::HttpRequestHandle,
@@ -19,30 +18,24 @@ pub struct ZaptecSettings {
     pub charging_power: f64,
 }
 
-pub struct ZaptecClient<'a> {
+pub struct ZaptecClient {
     https_client: ReqwlessClient,
-    token: ZaptecToken<'a>,
+    token: ZaptecToken,
 }
 
 #[derive(defmt::Format)]
-pub struct ZaptecToken<'a> {
-    access_token: &'a str,
+pub struct ZaptecToken {
+    access_token: &'static str,
     expiration: Instant,
 }
 
-impl<'a, 'b> ZaptecClient<'a> {
+impl ZaptecClient {
     pub async fn new(mut https_client: ReqwlessClient) -> Result<Self, ZaptecError> {
         let (token, expires_in) = Self::request_token(&mut https_client).await?;
 
-        let mut buf = [0u8; 4096];
-        let buf_ref = mk_static!([u8; 4096], buf);
-        let token_bytes = token.as_bytes();
-        buf[..token_bytes.len()].copy_from_slice(token_bytes);
-        let token_copy = str::from_utf8(&buf_ref[..token_bytes.len()]).unwrap();
-
         Ok(Self {
             https_client,
-            token: ZaptecToken::new(token_copy, expires_in),
+            token: ZaptecToken::new(token, expires_in),
         })
     }
 
@@ -51,8 +44,8 @@ impl<'a, 'b> ZaptecClient<'a> {
     }
 
     async fn request_token(
-        https_client: &'b mut ReqwlessClient,
-    ) -> Result<(&'b str, u64), ZaptecError> {
+        https_client: &mut ReqwlessClient,
+    ) -> Result<(&'static str, u64), ZaptecError> {
         let mut request = Self::make_token_request(https_client).await?;
         let rx_buf = [0u8; 4096];
         let rx_buf_ref = mk_static!([u8; 4096], rx_buf);
@@ -65,8 +58,7 @@ impl<'a, 'b> ZaptecClient<'a> {
         Ok((token, expires_in))
     }
 
-    fn parse_token_response(response_body: &'b str) -> Result<(&'b str, u64), ZaptecError> {
-        info!("Token response body: {}", response_body);
+    fn parse_token_response(response_body: &str) -> Result<(&str, u64), ZaptecError> {
         let mut response_lines = response_body
             .trim_start_matches("{")
             .trim_end_matches("}")
@@ -85,7 +77,6 @@ impl<'a, 'b> ZaptecClient<'a> {
                 )
             })
             .ok_or(TokenResponseError::NoTokenLine)?;
-        info!("Token: {}", token);
 
         let expires_in_str = response_lines
             .find_map(|line| {
@@ -100,7 +91,6 @@ impl<'a, 'b> ZaptecClient<'a> {
                 )
             })
             .ok_or(TokenResponseError::NoExpiresLine)?;
-        info!("Expires in: {}", expires_in_str);
 
         let expires_in = expires_in_str.parse()?;
 
@@ -113,27 +103,26 @@ impl<'a, 'b> ZaptecClient<'a> {
         env!("ZAPTEC_PASSWORD")
     );
 
-    async fn make_token_request(
-        https_client: &'b mut ReqwlessClient,
-    ) -> Result<HttpRequestHandle<'b, ReqwlessConnection<'b>, &'b [u8]>, ZaptecError> {
+    async fn make_token_request<'a>(
+        https_client: &'a mut ReqwlessClient,
+    ) -> Result<HttpRequestHandle<'a, ReqwlessConnection<'a>, &'a [u8]>, ZaptecError> {
         let request = https_client
             .request(Method::POST, formatcp!("{}/oauth/token", ZAPTEC_URL))
             .await?
             .headers(&[("Content-Type", "application/x-www-form-urlencoded")])
             .body(Self::ZAPTEC_TOKEN_BODY.as_bytes())
             .host(ZAPTEC_HOST);
-        info!("Token request body: {}", Self::ZAPTEC_TOKEN_BODY);
 
         Ok(request)
     }
 
-    pub fn token(&'a self) -> &'a ZaptecToken<'a> {
+    pub fn token(&self) -> &ZaptecToken {
         &self.token
     }
 }
 
-impl<'a> ZaptecToken<'a> {
-    fn new(token: &'a str, expires_in: u64) -> Self {
+impl ZaptecToken {
+    fn new(token: &'static str, expires_in: u64) -> Self {
         let mut expiration = Instant::now();
         expiration += Duration::from_secs(expires_in);
         Self {
