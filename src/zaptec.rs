@@ -101,17 +101,22 @@ impl<'a, 'b> ZaptecClient<'a> {
         Ok((token, expires_in))
     }
 
+    const ZAPTEC_TOKEN_BODY: &'static str = formatcp!(
+        "grant_type=password&username={}&password={}",
+        env!("ZAPTEC_USERNAME"),
+        env!("ZAPTEC_PASSWORD")
+    );
+
     async fn make_token_request(
         https_client: &'b mut ReqwlessClient,
     ) -> Result<HttpRequestHandle<'b, ReqwlessConnection<'b>, &'b [u8]>, ZaptecError> {
-        let encoded_body = env!("ZAPTEC_TOKEN_BODY").as_bytes();
         let request = https_client
             .request(Method::POST, formatcp!("{}/oauth/token", ZAPTEC_URL))
             .await?
             .headers(&[("Content-Type", "application/x-www-form-urlencoded")])
-            .body(encoded_body)
+            .body(Self::ZAPTEC_TOKEN_BODY.as_bytes())
             .host(ZAPTEC_HOST);
-        info!("Token request body: {}", encoded_body);
+        info!("Token request body: {}", Self::ZAPTEC_TOKEN_BODY);
 
         Ok(request)
     }
