@@ -25,8 +25,7 @@ pub const RECLAIMED_RAM: usize =
 
 pub fn calc_voltage(dsmr_reading: DSMRReading) -> ZaptecSettings {
     let leftover_wattage = dsmr_reading.power_received - dsmr_reading.power_delivered;
+    let available_current = leftover_wattage;
 
-    ZaptecSettings {
-        charging_power: leftover_wattage,
-    }
+    ZaptecSettings { available_current }
 }

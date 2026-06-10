@@ -4,6 +4,7 @@ use core::{num::ParseIntError, str::Utf8Error};
 pub enum ZaptecError {
     TokenRequest(reqwless::Error),
     TokenResponse(TokenResponseError),
+    MalformedResponse,
 }
 
 #[derive(Debug, defmt::Format)]

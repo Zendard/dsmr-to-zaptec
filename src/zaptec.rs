@@ -1,9 +1,12 @@
+use core::cmp::min;
+
 use crate::{
     error::zaptec::{TokenResponseError, ZaptecError},
     mk_static,
     wifi::{ReqwlessClient, ReqwlessConnection},
 };
 use const_format::formatcp;
+use defmt::info;
 use embassy_time::{Duration, Instant};
 use reqwless::{
     client::HttpRequestHandle,
@@ -15,12 +18,13 @@ const ZAPTEC_HOST: &str = "api.zaptec.com";
 
 #[derive(defmt::Format)]
 pub struct ZaptecSettings {
-    pub charging_power: f64,
+    pub available_current: f64,
 }
 
 pub struct ZaptecClient {
     https_client: ReqwlessClient,
-    token: ZaptecToken,
+    pub token: ZaptecToken,
+    pub installation_id: &'static str,
 }
 
 #[derive(defmt::Format)]
@@ -32,15 +36,50 @@ pub struct ZaptecToken {
 impl ZaptecClient {
     pub async fn new(mut https_client: ReqwlessClient) -> Result<Self, ZaptecError> {
         let (token, expires_in) = Self::request_token(&mut https_client).await?;
+        let token = ZaptecToken::new(token, expires_in);
+        let installation_id = Self::get_installations(&mut https_client, &token).await?;
 
         Ok(Self {
             https_client,
-            token: ZaptecToken::new(token, expires_in),
+            token,
+            installation_id,
         })
     }
 
-    pub fn apply_settings(&self, _settings: ZaptecSettings) -> Result<(), ZaptecError> {
+    pub async fn apply_settings(&self, _settings: ZaptecSettings) -> Result<(), ZaptecError> {
         Ok(())
+    }
+
+    async fn get_installations<'a>(
+        https_client: &'a mut ReqwlessClient,
+        token: &'a ZaptecToken,
+    ) -> Result<&'static str, ZaptecError> {
+        let rx_buf = [0u8; 4096];
+        let rx_buf_ref = mk_static!([u8; 4096], rx_buf);
+        let mut header_buf = [0u8; 4096];
+
+        let aut_header = token.auth_header(&mut header_buf);
+        let headers = &[
+            ("accept", "application/json"),
+            ("authorization", aut_header),
+        ];
+
+        info!("Headers: {}", headers);
+        let mut request = https_client
+            .request(Method::GET, formatcp!("{}/api/installation", ZAPTEC_URL))
+            .await?
+            .host(ZAPTEC_HOST)
+            .headers(headers);
+
+        let response = request.send(rx_buf_ref).await?;
+        let response_body = response.body().read_to_end().await?;
+        let response_body_ref = mk_static!(&[u8], response_body);
+
+        str::from_utf8(response_body_ref)?
+            .trim_start_matches("{\"Pages\":1,\"Data\":[{\"Id\":\"")
+            .split("\"")
+            .next()
+            .ok_or(ZaptecError::MalformedResponse)
     }
 
     async fn request_token(
@@ -72,7 +111,7 @@ impl ZaptecClient {
                 Some(
                     line.trim()
                         .trim_start_matches("\"access_token\":\"")
-                        .trim_end_matches("\",")
+                        .trim_end_matches("\"")
                         .trim(),
                 )
             })
@@ -83,12 +122,7 @@ impl ZaptecClient {
                 if !line.contains("expires_in") {
                     return None;
                 }
-                Some(
-                    line.trim()
-                        .trim_start_matches("\"expires_in\":")
-                        .trim_end_matches(",")
-                        .trim(),
-                )
+                Some(line.trim().trim_start_matches("\"expires_in\":").trim())
             })
             .ok_or(TokenResponseError::NoExpiresLine)?;
 
@@ -122,12 +156,21 @@ impl ZaptecClient {
 }
 
 impl ZaptecToken {
-    fn new(token: &'static str, expires_in: u64) -> Self {
+    pub fn new(token: &'static str, expires_in: u64) -> Self {
         let mut expiration = Instant::now();
         expiration += Duration::from_secs(expires_in);
         Self {
             access_token: token,
             expiration,
         }
+    }
+
+    const AUTH_HEADER_PREFIX: &str = "Bearer ";
+    pub fn auth_header<'a>(&'a self, buf: &'a mut [u8]) -> &'a str {
+        let str = [Self::AUTH_HEADER_PREFIX, self.access_token].concat();
+        let dest_len = min(buf.len(), str.len());
+        let str_slice = &str.as_bytes()[..dest_len];
+        buf[..dest_len].copy_from_slice(str_slice);
+        str::from_utf8(buf).unwrap()
     }
 }

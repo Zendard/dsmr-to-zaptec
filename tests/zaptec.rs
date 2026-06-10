@@ -66,7 +66,7 @@ mod tests {
     }
 
     #[test]
-    async fn fetch_token(mut init: Init<'static>) {
+    async fn fetch_installations(mut init: Init<'static>) {
         let _accel_queue = init.accel.start();
 
         let client = ZaptecClient::new(init.https_requester).await;
@@ -75,6 +75,7 @@ mod tests {
         }
         let client = client.unwrap();
 
-        info!("Got token: {}", client.token())
+        info!("Got token: {}", &client.token());
+        info!("Installation id: {}", client.installation_id);
     }
 }
