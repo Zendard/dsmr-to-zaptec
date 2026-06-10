@@ -10,7 +10,6 @@ pub enum ZaptecError {
 pub enum TokenResponseError {
     NotAString,
     NoTokenLine,
-    MalformedTokenLine,
     NoExpiresLine,
     MalformedExpiresLine,
 }

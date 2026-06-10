@@ -4,7 +4,7 @@ use crate::{
     wifi::{ReqwlessClient, ReqwlessConnection},
 };
 use const_format::formatcp;
-use defmt::{info, warn};
+use defmt::info;
 use embassy_time::{Duration, Instant};
 use reqwless::{
     client::HttpRequestHandle,
@@ -67,34 +67,40 @@ impl<'a, 'b> ZaptecClient<'a> {
 
     fn parse_token_response(response_body: &'b str) -> Result<(&'b str, u64), ZaptecError> {
         info!("Token response body: {}", response_body);
-        let mut response_lines = response_body.lines();
-        response_lines.next();
-        let token_line = response_lines
-            .next()
+        let mut response_lines = response_body
+            .trim_start_matches("{")
+            .trim_end_matches("}")
+            .split(",");
+
+        let token = response_lines
+            .find_map(|line| {
+                if !line.contains("access_token") {
+                    return None;
+                }
+                Some(
+                    line.trim()
+                        .trim_start_matches("\"access_token\":\"")
+                        .trim_end_matches("\",")
+                        .trim(),
+                )
+            })
             .ok_or(TokenResponseError::NoTokenLine)?;
+        info!("Token: {}", token);
 
-        if !token_line.contains("access_token") {
-            warn!("No acces_token field on token response");
-            return Err(TokenResponseError::MalformedTokenLine.into());
-        }
-
-        let token = token_line
-            .trim_start_matches("\"access_token\": \"")
-            .trim_end_matches("\",");
-
-        response_lines.next();
-        let expires_in_line = response_lines
-            .next()
+        let expires_in_str = response_lines
+            .find_map(|line| {
+                if !line.contains("expires_in") {
+                    return None;
+                }
+                Some(
+                    line.trim()
+                        .trim_start_matches("\"expires_in\":")
+                        .trim_end_matches(",")
+                        .trim(),
+                )
+            })
             .ok_or(TokenResponseError::NoExpiresLine)?;
-
-        if !expires_in_line.contains("expires_in") {
-            warn!("No expires_in field on token response");
-            return Err(TokenResponseError::MalformedExpiresLine.into());
-        }
-
-        let expires_in_str = expires_in_line
-            .trim_start_matches("\"expires_in\": ")
-            .trim_end_matches(",");
+        info!("Expires in: {}", expires_in_str);
 
         let expires_in = expires_in_str.parse()?;
 
